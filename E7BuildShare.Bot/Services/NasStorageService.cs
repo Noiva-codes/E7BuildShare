@@ -15,6 +15,14 @@ public sealed class NasStorageService
         string fileName,
         CancellationToken cancellationToken = default)
     {
+        if (!OperatingSystem.IsWindows())
+            throw new PlatformNotSupportedException("SMB credential connections currently require Windows.");
+
+        if (!_options.SharePath.StartsWith(@"\\", StringComparison.Ordinal))
+            throw new ArgumentException(
+                "NasStorage:SharePath must be a UNC SMB path such as \\\\[Server IP or Server Hostname]\\E7Builds.",
+                nameof(_options.SharePath));
+
         var safeUnitName = string.Join("_", unitName.Split(Path.GetInvalidFileNameChars()));
         if (string.IsNullOrWhiteSpace(safeUnitName))
             throw new ArgumentException("Unit name cannot be empty.", nameof(unitName));
@@ -23,12 +31,12 @@ public sealed class NasStorageService
         if (string.IsNullOrWhiteSpace(extension))
             extension = ".jpg";
 
+        using var connection = new SmbConnection(_options.SharePath, _options.Username, _options.Password);
         var targetDirectory = Path.Combine(_options.SharePath, uploaderId.ToString(), safeUnitName);
         Directory.CreateDirectory(targetDirectory);
         var targetName = $"{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}{extension}";
         var targetPath = Path.Combine(targetDirectory, targetName);
 
-        using var connection = new SmbConnection(_options.SharePath, _options.Username, _options.Password);
         using var http = new HttpClient();
         await using var source = await http.GetStreamAsync(attachmentUri, cancellationToken);
         await using var destination = new FileStream(targetPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);

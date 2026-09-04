@@ -21,13 +21,13 @@ public sealed class UploadCommand : ApplicationCommandModule
         {
             await _storage.SaveAsync(context.User.Id, unitName, new Uri(image.Url), image.FileName);
             await context.EditResponseAsync(new DiscordWebhookBuilder()
-                .WithContent($"Uploaded **{unitName}** successfully."));
+                .WithContent($"Uploaded **{unitName}** for **{context.User.Username}** successfully."));
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine($"Upload failed: {ex.Message}");
             await context.EditResponseAsync(new DiscordWebhookBuilder()
-                .WithContent("Upload failed. Check the bot logs for details."));
+                .WithContent("Fatal Error. Command could not be completed."));
         }
     }
 }

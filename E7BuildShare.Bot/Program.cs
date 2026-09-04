@@ -7,9 +7,15 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.Configuration.Sources.Clear();
 builder.Configuration
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false);
+    //.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+    .AddJsonFile($"appsettings.Development.json", optional: true, reloadOnChange: false);
 
+builder.Services.AddSingleton(serviceProvider =>
+    serviceProvider.GetRequiredService<IConfiguration>()
+        .GetSection("NasStorage")
+        .Get<NasStorageOptions>()
+        ?? throw new InvalidOperationException(
+            "The 'NasStorage' configuration section is missing."));
 builder.Services.AddSingleton<NasStorageService>();
 builder.Services.AddHostedService<DiscordBotService>();
 
