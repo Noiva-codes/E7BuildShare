@@ -7,7 +7,7 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.Configuration.Sources.Clear();
 builder.Configuration
-    //.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
     .AddJsonFile($"appsettings.Development.json", optional: true, reloadOnChange: false);
 
 builder.Services.AddSingleton(serviceProvider =>
@@ -20,8 +20,11 @@ builder.Services.AddSingleton<NasStorageService>();
 builder.Services.AddSingleton(serviceProvider =>
     serviceProvider.GetRequiredService<IConfiguration>()
         .GetSection("Database")
-        .Get<DatabaseOptions>() ?? new DatabaseOptions());
+        .Get<DatabaseOptions>() is { Path.Length: > 0 } databaseOptions
+            ? databaseOptions
+            : throw new InvalidOperationException("Database:Path must be configured.") );
 builder.Services.AddSingleton<SqliteDatabaseProvider>();
+builder.Services.AddSingleton<BuildLookupService>();
 builder.Services.AddHostedService<DiscordBotService>();
 
 var host = builder.Build();

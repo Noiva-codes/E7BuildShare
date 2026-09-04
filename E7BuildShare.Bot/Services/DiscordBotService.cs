@@ -1,9 +1,12 @@
 using DSharpPlus;
-using DSharpPlus.SlashCommands;
+using DSharpPlus.Commands;
+using DSharpPlus.Commands.Processors;
+using DSharpPlus.Commands.Processors.SlashCommands;
 using E7BuildShare.Bot.Commands;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace E7BuildShare.Bot.Services;
 
@@ -26,16 +29,18 @@ public sealed class DiscordBotService(
             string.IsNullOrWhiteSpace(storageOptions.Password))
             throw new InvalidOperationException("NAS storage settings must be configured in AppSettings.");
 
-        var client = new DiscordClient(new DiscordConfiguration
+        var client = DiscordClientBuilder.CreateDefault(botOptions.Token, DiscordIntents.All);
+        client.ConfigureServices(commandServices =>
         {
-            Token = botOptions.Token,
-            TokenType = TokenType.Bot,
-            Intents = DiscordIntents.All,
-            MinimumLogLevel = LogLevel.Information
+            commandServices.AddSingleton(services.GetRequiredService<NasStorageService>());
+            commandServices.AddSingleton(services.GetRequiredService<BuildLookupService>());
         });
-
-        var slashCommands = client.UseSlashCommands(new SlashCommandsConfiguration { Services = services });
-        slashCommands.RegisterCommands<UploadCommand>();
+        client.UseCommands((_, extension) =>
+        {
+            extension.AddCommands<UploadCommand>();
+            extension.AddCommands<RetrieveCommand>();
+            extension.AddProcessor(new SlashCommandProcessor());
+        });
 
         logger.LogInformation("Connecting to Discord...");
         await client.ConnectAsync();

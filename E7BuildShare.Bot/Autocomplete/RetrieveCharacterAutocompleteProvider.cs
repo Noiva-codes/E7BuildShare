@@ -1,10 +1,21 @@
 using DSharpPlus.Entities;
-using DSharpPlus.SlashCommands;
+using DSharpPlus.Commands.Processors.SlashCommands;
+using DSharpPlus.Commands.Processors.SlashCommands.ArgumentModifiers;
+using E7BuildShare.Bot.Services;
 
 namespace E7BuildShare.Bot.Autocomplete;
 
-public sealed class RetrieveCharacterAutocompleteProvider : IAutocompleteProvider
+public sealed class RetrieveCharacterAutocompleteProvider : IAutoCompleteProvider
 {
-    public Task<IEnumerable<DiscordAutoCompleteChoice>> Provider(AutocompleteContext context) =>
-        Task.FromResult<IEnumerable<DiscordAutoCompleteChoice>>(Array.Empty<DiscordAutoCompleteChoice>());
+    private readonly BuildLookupService _lookup;
+
+    public RetrieveCharacterAutocompleteProvider(BuildLookupService lookup) => _lookup = lookup;
+
+    public async ValueTask<IEnumerable<DiscordAutoCompleteChoice>> AutoCompleteAsync(AutoCompleteContext context)
+    {
+        var query = context.UserInput ?? string.Empty;
+        var names = await _lookup.GetCharacterNamesAsync();
+        return names.Where(name => name.Contains(query, StringComparison.OrdinalIgnoreCase))
+            .Take(25).Select(name => new DiscordAutoCompleteChoice(name, name));
+    }
 }

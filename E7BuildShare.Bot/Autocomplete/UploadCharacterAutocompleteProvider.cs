@@ -1,10 +1,11 @@
 using DSharpPlus.Entities;
-using DSharpPlus.SlashCommands;
+using DSharpPlus.Commands.Processors.SlashCommands;
+using DSharpPlus.Commands.Processors.SlashCommands.ArgumentModifiers;
 
 namespace E7BuildShare.Bot.Autocomplete;
 
-public sealed class UploadCharacterAutocompleteProvider : IAutocompleteProvider
+public sealed class UploadCharacterAutocompleteProvider : IAutoCompleteProvider
 {
-    public Task<IEnumerable<DiscordAutoCompleteChoice>> Provider(AutocompleteContext context) =>
-        Task.FromResult<IEnumerable<DiscordAutoCompleteChoice>>(Array.Empty<DiscordAutoCompleteChoice>());
+    public ValueTask<IEnumerable<DiscordAutoCompleteChoice>> AutoCompleteAsync(AutoCompleteContext context) =>
+        ValueTask.FromResult<IEnumerable<DiscordAutoCompleteChoice>>(Array.Empty<DiscordAutoCompleteChoice>());
 }

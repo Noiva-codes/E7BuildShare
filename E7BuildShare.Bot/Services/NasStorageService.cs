@@ -45,6 +45,22 @@ public sealed class NasStorageService
         return targetPath;
     }
 
+    public Task<Stream> OpenReadAsync(string path, CancellationToken cancellationToken = default)
+    {
+        var connection = new SmbConnection(_options.SharePath, _options.Username, _options.Password);
+        cancellationToken.ThrowIfCancellationRequested();
+        try
+        {
+            var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            return Task.FromResult<Stream>(new ConnectedFileStream(stream, connection));
+        }
+        catch
+        {
+            connection.Dispose();
+            throw;
+        }
+    }
+
     private sealed class SmbConnection : IDisposable
     {
         private readonly string _share;
@@ -72,5 +88,40 @@ public sealed class NasStorageService
             public int dwScope, dwType, dwDisplayType, dwUsage;
             public string? lpLocalName, lpRemoteName, lpComment, lpProvider;
         }
+    }
+
+    private sealed class ConnectedFileStream(FileStream inner, SmbConnection connection) : Stream
+    {
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                inner.Dispose();
+                connection.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        public override bool CanRead => inner.CanRead;
+        public override bool CanSeek => inner.CanSeek;
+        public override bool CanWrite => inner.CanWrite;
+        public override long Length => inner.Length;
+        public override long Position { get => inner.Position; set => inner.Position = value; }
+        public override void Flush() => inner.Flush();
+        public override Task FlushAsync(CancellationToken cancellationToken) => inner.FlushAsync(cancellationToken);
+        public override int Read(byte[] buffer, int offset, int count) => inner.Read(buffer, offset, count);
+        public override int Read(Span<byte> buffer) => inner.Read(buffer);
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            inner.ReadAsync(buffer, offset, count, cancellationToken);
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
+            inner.ReadAsync(buffer, cancellationToken);
+        public override long Seek(long offset, SeekOrigin origin) => inner.Seek(offset, origin);
+        public override void SetLength(long value) => inner.SetLength(value);
+        public override void Write(byte[] buffer, int offset, int count) => inner.Write(buffer, offset, count);
+        public override void Write(ReadOnlySpan<byte> buffer) => inner.Write(buffer);
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            inner.WriteAsync(buffer, offset, count, cancellationToken);
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) =>
+            inner.WriteAsync(buffer, cancellationToken);
     }
 }

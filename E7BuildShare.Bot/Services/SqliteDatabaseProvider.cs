@@ -8,6 +8,9 @@ public sealed class SqliteDatabaseProvider
 
     public SqliteDatabaseProvider(DatabaseOptions options) => _options = options;
 
+    public SqliteConnection CreateConnection() =>
+        new($"Data Source={Path.GetFullPath(_options.Path)}");
+
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         var databasePath = Path.GetFullPath(_options.Path);
@@ -29,7 +32,7 @@ public sealed class SqliteDatabaseProvider
                 Name TEXT NOT NULL COLLATE NOCASE UNIQUE,
                 CreatedAtUtc TEXT NOT NULL
             );
-            CREATE TABLE IF NOT EXISTS BuildUploads (
+            CREATE TABLE IF NOT EXISTS BuildVersions (
                 Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                 UploaderId TEXT NOT NULL,
                 CharacterId INTEGER NOT NULL,
@@ -38,10 +41,10 @@ public sealed class SqliteDatabaseProvider
                 UploadedAtUtc TEXT NOT NULL,
                 FOREIGN KEY (CharacterId) REFERENCES Characters (Id)
             );
-            CREATE INDEX IF NOT EXISTS IX_BuildUploads_UploaderCharacterDate
-                ON BuildUploads (UploaderId, CharacterId, UploadedAtUtc DESC);
-            CREATE INDEX IF NOT EXISTS IX_BuildUploads_CharacterDate
-                ON BuildUploads (CharacterId, UploadedAtUtc DESC);
+            CREATE INDEX IF NOT EXISTS IX_BuildVersions_UploaderCharacterDate
+                ON BuildVersions (UploaderId, CharacterId, UploadedAtUtc DESC);
+            CREATE INDEX IF NOT EXISTS IX_BuildVersions_CharacterDate
+                ON BuildVersions (CharacterId, UploadedAtUtc DESC);
             """;
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -49,5 +52,5 @@ public sealed class SqliteDatabaseProvider
 
 public sealed class DatabaseOptions
 {
-    public string Path { get; set; } = "Data/e7buildshare.db";
+    public string Path { get; set; } = string.Empty;
 }
