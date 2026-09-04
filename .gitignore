@@ -3,3 +3,5 @@ obj/
 .vs/
 *.user
 *.suo
+
+E7BuildShare.Bot/appsettings.Development.json

@@ -1,44 +1,17 @@
-using DSharpPlus;
+using E7BuildShare.Bot.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Production";
+var builder = Host.CreateApplicationBuilder(args);
 
-var configuration = new ConfigurationBuilder()
-    .SetBasePath(AppContext.BaseDirectory)
+builder.Configuration.Sources.Clear();
+builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-    .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: false)
-    .Build();
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false);
 
-var options = configuration.GetSection("Bot").Get<BotOptions>()
-    ?? throw new InvalidOperationException("The 'Bot' configuration section is missing.");
+builder.Services.AddSingleton<NasStorageService>();
+builder.Services.AddHostedService<DiscordBotService>();
 
-if (string.IsNullOrWhiteSpace(options.Token))
-{
-    throw new InvalidOperationException(
-        "Discord bot token is missing. Set Bot:Token in the active appsettings file.");
-}
-
-if (string.IsNullOrWhiteSpace(options.GuildId) ||
-    !ulong.TryParse(options.GuildId, out _))
-{
-    throw new InvalidOperationException("Bot:GuildId must be a valid Discord server ID.");
-}
-
-var client = new DiscordClient(new DiscordConfiguration
-{
-    Token = options.Token,
-    TokenType = TokenType.Bot,
-    Intents = DiscordIntents.All,
-    MinimumLogLevel = Microsoft.Extensions.Logging.LogLevel.Information
-});
-
-await client.ConnectAsync();
-
-Console.WriteLine("E7BuildShare bot is online. Press Ctrl+C to stop.");
-await Task.Delay(Timeout.InfiniteTimeSpan);
-
-public sealed class BotOptions
-{
-    public string Token { get; set; } = string.Empty;
-    public string GuildId { get; set; } = string.Empty;
-}
+var host = builder.Build();
+await host.RunAsync();
