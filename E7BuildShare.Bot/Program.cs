@@ -17,7 +17,13 @@ builder.Services.AddSingleton(serviceProvider =>
         ?? throw new InvalidOperationException(
             "The 'NasStorage' configuration section is missing."));
 builder.Services.AddSingleton<NasStorageService>();
+builder.Services.AddSingleton(serviceProvider =>
+    serviceProvider.GetRequiredService<IConfiguration>()
+        .GetSection("Database")
+        .Get<DatabaseOptions>() ?? new DatabaseOptions());
+builder.Services.AddSingleton<SqliteDatabaseProvider>();
 builder.Services.AddHostedService<DiscordBotService>();
 
 var host = builder.Build();
+await host.Services.GetRequiredService<SqliteDatabaseProvider>().InitializeAsync();
 await host.RunAsync();
