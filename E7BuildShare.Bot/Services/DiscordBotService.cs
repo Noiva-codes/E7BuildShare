@@ -40,6 +40,9 @@ public sealed class DiscordBotService(
             extension.AddCommands<UploadCommand>();
             extension.AddCommands<RetrieveCommand>();
             extension.AddProcessor(new SlashCommandProcessor());
+        }, new CommandsConfiguration
+        {
+            DebugGuildId = botOptions.DebugGuildId
         });
 
         logger.LogInformation("Connecting to Discord...");
@@ -52,6 +55,7 @@ public sealed class DiscordBotService(
 public sealed class BotOptions
 {
     public string Token { get; set; } = string.Empty;
+    public ulong DebugGuildId { get; set; }
 }
 
 public sealed class NasStorageOptions
